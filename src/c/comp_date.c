@@ -40,22 +40,21 @@ static void d_tick(Complication *base, struct tm *t) {
 static void d_draw(Complication *base, GContext *ctx, GRect bounds) {
     DateComplication *self = (DateComplication *)base;
 
-    /*
-     * Diamond reveal area is rhombus-shaped, but a complication's safe
-     * rendering zone is the inscribed rectangle — roughly 60% of the
-     * bounding box centered on it. Anything drawn outside this zone
-     * risks being clipped by the door warp at intermediate progress.
-     */
     int cx = bounds.origin.x + bounds.size.w / 2;
     int cy = bounds.origin.y + bounds.size.h / 2;
+    int u  = (bounds.size.w < bounds.size.h ? bounds.size.w : bounds.size.h) / 10;
 
     GFont big   = fonts_get_system_font(FONT_KEY_LECO_28_LIGHT_NUMBERS);
     GFont small = fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD);
 
     graphics_context_set_text_color(ctx, OMNI_COMP_TEXT);
 
-    GRect day_rect  = GRect(cx - 60, cy - 40, 120, 32);
-    GRect date_rect = GRect(cx - 70, cy - 5,  140, 36);
+    GRect day_rect  = GRect(cx - bounds.size.w * 5 / 12,
+                            cy - u * 3,
+                            bounds.size.w * 5 / 6, u * 2);
+    GRect date_rect = GRect(cx - bounds.size.w / 2,
+                            cy - u / 3,
+                            bounds.size.w, u * 3);
 
     graphics_draw_text(ctx, self->day_buf, small, day_rect,
                        GTextOverflowModeFill, GTextAlignmentCenter, NULL);
