@@ -71,7 +71,9 @@ void comp_scroll_init(Layer *parent, GRect diamond_bounds) {
 
 void comp_scroll_deinit(void) {
     if (s_anim) { animation_unschedule(s_anim); s_anim = NULL; }
-    s_done_cb = NULL;
+    s_done_cb       = NULL;
+    s_transitioning = false;
+    s_offset        = 0;
     if (s_layer) { layer_destroy(s_layer); s_layer = NULL; }
 }
 
