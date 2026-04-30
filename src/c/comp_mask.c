@@ -18,13 +18,13 @@ static void layer_draw(Layer *layer, GContext *ctx) {
     }
 }
 
-void comp_mask_init(Layer *parent, GRect d) {
-    int cx = d.origin.x + d.size.w / 2;
-    int cy = d.origin.y + d.size.h / 2;
-    int x0 = d.origin.x;
-    int y0 = d.origin.y;
-    int x1 = d.origin.x + d.size.w;
-    int y1 = d.origin.y + d.size.h;
+void comp_mask_init(Layer *parent, GRect diamond_bounds) {
+    int cx = diamond_bounds.origin.x + diamond_bounds.size.w / 2;
+    int cy = diamond_bounds.origin.y + diamond_bounds.size.h / 2;
+    int x0 = diamond_bounds.origin.x;
+    int y0 = diamond_bounds.origin.y;
+    int x1 = diamond_bounds.origin.x + diamond_bounds.size.w;
+    int y1 = diamond_bounds.origin.y + diamond_bounds.size.h;
 
     /* top-left triangle */
     s_pts[0][0] = GPoint(x0, y0);
