@@ -33,37 +33,32 @@ static void b_tick(Complication *base, struct tm *t) {
 
 static void b_draw(Complication *base, GContext *ctx, GRect bounds) {
     BatteryComplication *self = (BatteryComplication *)base;
-    /* Refresh on every draw — battery reads are cheap */
     b_refresh(self);
 
     int cx = bounds.origin.x + bounds.size.w / 2;
     int cy = bounds.origin.y + bounds.size.h / 2;
+    int u  = (bounds.size.w < bounds.size.h ? bounds.size.w : bounds.size.h) / 10;
 
-    /* Color gradient: green→yellow→red as battery drops */
     GColor bar_color;
     if      (self->percent > 50) bar_color = GColorMalachite;
     else if (self->percent > 20) bar_color = GColorYellow;
     else                          bar_color = GColorRed;
 
-    /* Percent text */
     GFont font = fonts_get_system_font(FONT_KEY_LECO_36_BOLD_NUMBERS);
     graphics_context_set_text_color(ctx, OMNI_COMP_TEXT);
-    GRect text_rect = GRect(cx - 50, cy - 35, 100, 42);
+    GRect text_rect = GRect(cx - u * 7 / 2, cy - u * 2, u * 7, u * 3);
     graphics_draw_text(ctx, self->buf, font, text_rect,
                        GTextOverflowModeFill, GTextAlignmentCenter, NULL);
 
-    /* Horizontal gauge bar below the text */
-    int bar_w = 80;
-    int bar_h = 8;
+    int bar_w = u * 6;
+    int bar_h = u / 2 > 4 ? u / 2 : 4;
     int bar_x = cx - bar_w / 2;
-    int bar_y = cy + 12;
+    int bar_y = cy + u;
 
-    /* Empty outline */
     graphics_context_set_stroke_color(ctx, OMNI_COMP_TEXT);
     graphics_context_set_stroke_width(ctx, 1);
     graphics_draw_rect(ctx, GRect(bar_x, bar_y, bar_w, bar_h));
 
-    /* Fill */
     int fill_w = (self->percent * (bar_w - 2)) / 100;
     if (fill_w > 0) {
         graphics_context_set_fill_color(ctx, bar_color);
