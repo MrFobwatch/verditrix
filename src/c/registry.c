@@ -39,7 +39,24 @@ void registry_tick(struct tm *t) {
 }
 
 void registry_draw(GContext *ctx, GRect bounds) {
-    complication_draw(*s_comps[s_current], ctx, bounds);
+    registry_draw_index(s_current, ctx, bounds);
+}
+
+void registry_draw_index(int idx, GContext *ctx, GRect bounds) {
+    if (idx < 0 || idx >= (int)N_COMPS) idx = 0;
+    complication_draw(*s_comps[idx], ctx, bounds);
+}
+
+void registry_set_current(int idx) {
+    s_current = ((idx % (int)N_COMPS) + (int)N_COMPS) % (int)N_COMPS;
+}
+
+int registry_current_idx(void) {
+    return s_current;
+}
+
+int registry_peek_next(void) {
+    return (s_current + 1) % (int)N_COMPS;
 }
 
 const char* registry_current_name(void) {
