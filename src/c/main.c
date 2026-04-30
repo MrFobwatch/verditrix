@@ -6,7 +6,8 @@
  *   Root window layer
  *    ├── s_bg_layer     solid OMNI_BG fill
  *    ├── [frame]        chrome decoration — currently disabled
- *    ├── s_comp_layer   active complication rendered into the diamond area
+ *    ├── comp_scroll    animated complication layer (owned by comp_scroll.c)
+ *    ├── comp_mask      static inverse diamond mask (owned by comp_mask.c)
  *    └── door layer     X-half doors + time text (topmost, owned by door.c)
  *
  * Sequence state machine (wraps door.c's OPENING/CLOSING animation):
@@ -22,6 +23,8 @@
 #include "door.h"
 #include "frame.h"
 #include "registry.h"
+#include "comp_scroll.h"
+#include "comp_mask.h"
 
 
 /* comp_weather_set is declared here since comp_weather.c has no public header */
@@ -29,7 +32,6 @@ void comp_weather_set(int temp, const char *cond);
 
 static Window *s_window;
 static Layer  *s_bg_layer;
-static Layer  *s_comp_layer;
 static GRect   s_diamond_bounds;
 
 /* ============================================================
@@ -57,7 +59,7 @@ static void cancel_seq_timer(void) {
 static void mark_all_dirty(void) {
     door_mark_dirty();
     frame_mark_dirty();
-    layer_mark_dirty(s_comp_layer);
+    comp_scroll_mark_dirty();
 }
 
 static void seq_callback(void *context);  /* forward */
@@ -131,12 +133,8 @@ static void bg_draw(Layer *l, GContext *ctx) {
     graphics_fill_rect(ctx, layer_get_bounds(l), 0, GCornerNone);
 }
 
-/* ============================================================
- * Complication layer.
- * ============================================================ */
-static void comp_draw(Layer *l, GContext *ctx) {
-    if (door_progress() < 5) return;
-    registry_draw(ctx, s_diamond_bounds);
+static void on_scroll_done(int new_idx) {
+    registry_set_current(new_idx);
 }
 
 /* ============================================================
@@ -159,14 +157,14 @@ static void on_door_state_change(DoorState state, void *ctx) {
         default:
             break;
     }
-    layer_mark_dirty(s_comp_layer);
+    comp_scroll_mark_dirty();
 }
 
 /* ============================================================
  * Door frame callback — keeps complication in sync with animation.
  * ============================================================ */
 static void on_door_frame(int progress, void *ctx) {
-    layer_mark_dirty(s_comp_layer);
+    comp_scroll_mark_dirty();
 }
 
 /* ============================================================
@@ -183,9 +181,10 @@ static void on_tap(AccelAxisType axis, int32_t direction) {
         theme_set_accent(GColorMalachite);
         schedule_seq(BLINK_INTERVAL_MS);
     } else {
-        /* Already open — cycle complication and reset hold/warn */
-        registry_next();
-        layer_mark_dirty(s_comp_layer);
+        /* Already open — trigger scroll to next complication */
+        int from = registry_current_idx();
+        int to   = registry_peek_next();
+        comp_scroll_trigger(from, to, on_scroll_done);
         if (s_seq == SEQ_HOLD || s_seq == SEQ_WARN) {
             cancel_seq_timer();
             s_seq = SEQ_HOLD;
@@ -207,7 +206,7 @@ static void on_tick(struct tm *t, TimeUnits changed) {
     strftime(mm_buf, sizeof(mm_buf), "%M", t);
     door_set_time(hh_buf, mm_buf);
     registry_tick(t);
-    layer_mark_dirty(s_comp_layer);
+    comp_scroll_mark_dirty();
 
     /* Request weather every 30 minutes */
     if (t->tm_min % 30 == 0) {
@@ -231,7 +230,7 @@ static void inbox_received(DictionaryIterator *iter, void *ctx) {
             temp_t ? (int)temp_t->value->int32 : INT32_MIN,
             cond_t ? cond_t->value->cstring    : NULL
         );
-        layer_mark_dirty(s_comp_layer);
+        comp_scroll_mark_dirty();
     }
 }
 
@@ -258,9 +257,8 @@ static void window_load(Window *window) {
 
     frame_init(root);  /* chrome decoration — re-enable when desired */
 
-    s_comp_layer = layer_create(bounds);
-    layer_set_update_proc(s_comp_layer, comp_draw);
-    layer_add_child(root, s_comp_layer);
+    comp_scroll_init(root, s_diamond_bounds);
+    comp_mask_init(root, s_diamond_bounds);
 
     door_init(root, s_diamond_bounds);
     door_set_state_cb(on_door_state_change, NULL);
@@ -276,7 +274,8 @@ static void window_load(Window *window) {
 static void window_unload(Window *window) {
     cancel_seq_timer();
     door_deinit();
-    if (s_comp_layer) { layer_destroy(s_comp_layer); s_comp_layer = NULL; }
+    comp_mask_deinit();
+    comp_scroll_deinit();
     frame_deinit();
     if (s_bg_layer)   { layer_destroy(s_bg_layer);   s_bg_layer   = NULL; }
     registry_deinit();
