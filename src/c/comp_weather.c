@@ -22,6 +22,7 @@ static void w_draw(Complication *base, GContext *ctx, GRect bounds) {
 
     int cx = bounds.origin.x + bounds.size.w / 2;
     int cy = bounds.origin.y + bounds.size.h / 2;
+    int u  = (bounds.size.w < bounds.size.h ? bounds.size.w : bounds.size.h) / 10;
 
     char temp_str[8];
     snprintf(temp_str, sizeof(temp_str), "%d\xc2\xb0", self->temp);
@@ -31,8 +32,8 @@ static void w_draw(Complication *base, GContext *ctx, GRect bounds) {
 
     graphics_context_set_text_color(ctx, OMNI_COMP_TEXT);
 
-    GRect temp_rect = GRect(cx - 40, cy - 30, 80, 36);
-    GRect cond_rect = GRect(cx - 44, cy + 10, 88, 28);
+    GRect temp_rect = GRect(cx - u * 3,     cy - u * 2,     u * 6, u * 3);
+    GRect cond_rect = GRect(cx - u * 7 / 2, cy + u / 2,     u * 7, u * 2);
 
     graphics_draw_text(ctx, temp_str, temp_font, temp_rect,
                        GTextOverflowModeFill, GTextAlignmentCenter, NULL);
