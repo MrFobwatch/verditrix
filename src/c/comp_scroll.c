@@ -58,8 +58,8 @@ static const AnimationImplementation s_anim_impl = { .update = anim_update };
 
 void comp_scroll_init(Layer *parent, GRect diamond_bounds) {
     s_diamond       = diamond_bounds;
-    s_out_idx       = 0;
-    s_in_idx        = 0;
+    s_out_idx       = registry_current_idx();
+    s_in_idx        = s_out_idx;
     s_offset        = 0;
     s_transitioning = false;
 
