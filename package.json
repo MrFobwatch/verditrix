@@ -1,0 +1,32 @@
+{
+  "name": "omnitrix",
+  "author": "Your Name",
+  "version": "0.1.0",
+  "keywords": [
+    "pebble-app"
+  ],
+  "private": true,
+  "dependencies": {
+    "pebble-effect-layer": "^1.4.0"
+  },
+  "pebble": {
+    "displayName": "Omnitrix",
+    "uuid": "3935a483-ae68-4012-b25d-f4410529e44d",
+    "sdkVersion": "3",
+    "enableMultiJS": true,
+    "targetPlatforms": [
+      "emery"
+    ],
+    "watchapp": {
+      "watchface": true
+    },
+    "messageKeys": [
+      "TEMPERATURE",
+      "CONDITIONS",
+      "REQUEST_WEATHER"
+    ],
+    "resources": {
+      "media": []
+    }
+  }
+}
