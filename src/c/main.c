@@ -251,11 +251,15 @@ static void window_load(Window *window) {
         diamond_size_h
     );
 
+    registry_init();
+    time_t now = time(NULL);
+    on_tick(localtime(&now), MINUTE_UNIT);
+
     s_bg_layer = layer_create(bounds);
     layer_set_update_proc(s_bg_layer, bg_draw);
     layer_add_child(root, s_bg_layer);
 
-    frame_init(root);  /* chrome decoration — re-enable when desired */
+    frame_init(root);
 
     comp_scroll_init(root, s_diamond_bounds);
     comp_mask_init(root, s_diamond_bounds);
@@ -263,10 +267,6 @@ static void window_load(Window *window) {
     door_init(root, s_diamond_bounds);
     door_set_state_cb(on_door_state_change, NULL);
     door_set_frame_cb(on_door_frame, NULL);
-
-    registry_init();
-    time_t now = time(NULL);
-    on_tick(localtime(&now), MINUTE_UNIT);
 
     // frame_start_rotation();
 }
