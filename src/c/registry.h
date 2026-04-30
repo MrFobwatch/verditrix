@@ -1,6 +1,15 @@
 #pragma once
 #include "complication.h"
 
+/*
+ * registry.h — owns the array of available complications.
+ *
+ * Adding a new complication is two steps:
+ *   1. Create src/c/comp_yourname.c with a Complication* global pointing to
+ *      your concrete instance's super field, and extern-declare it here.
+ *   2. Add &comp_yourname to the s_comps[] array in registry.c.
+ */
+
 void registry_init(void);
 void registry_deinit(void);
 

@@ -27,7 +27,7 @@ void registry_deinit(void) {
 }
 
 void registry_next(void) {
-    s_current = (s_current + 1) % N_COMPS;
+    registry_set_current(s_current + 1);
 }
 
 void registry_tick(struct tm *t) {
