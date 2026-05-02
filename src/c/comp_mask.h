@@ -14,3 +14,5 @@
 
 void comp_mask_init(Layer *parent, GRect diamond_bounds);
 void comp_mask_deinit(void);
+void comp_mask_set_visible(bool visible);
+void comp_mask_set_split(int dx);

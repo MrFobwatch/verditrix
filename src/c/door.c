@@ -80,10 +80,10 @@ static void draw_time(GContext *ctx, GRect bounds) {
     graphics_context_set_text_color(ctx, OMNI_TIME_TEXT);
 
     graphics_draw_text(ctx, s_hh_buf, font,
-                       GRect(cx - 40, cy - cy * 90 / 100, 80, 50),
+                       GRect(cx - 40, cy - 25 - (cy * 75  / 100) , 80, 50),
                        GTextOverflowModeWordWrap, GTextAlignmentCenter, NULL);
     graphics_draw_text(ctx, s_mm_buf, font,
-                       GRect(cx - 40, cy + cy * 30 / 100, 80, 50),
+                       GRect(cx - 40, cy - 25 + (cy * 50  / 100) , 80, 50),
                        GTextOverflowModeWordWrap, GTextAlignmentCenter, NULL);
 }
 
@@ -138,14 +138,14 @@ static void anim_stopped(Animation *a, bool finished, void *ctx) {
 
 static const AnimationImplementation s_anim_impl = { .update = anim_update };
 
-static void start_anim(bool opening) {
+static void start_anim(bool opening, uint32_t duration) {
     if (s_anim) { animation_unschedule(s_anim); s_anim = NULL; }
     s_opening = opening;
     s_state   = opening ? DOOR_OPENING : DOOR_CLOSING;
 
     s_anim = animation_create();
     animation_set_implementation(s_anim, &s_anim_impl);
-    animation_set_duration(s_anim, DOOR_ANIM_MS);
+    animation_set_duration(s_anim, duration);
     animation_set_curve(s_anim, AnimationCurveEaseInOut);
     animation_set_handlers(s_anim,
         (AnimationHandlers){ .stopped = anim_stopped }, NULL);
@@ -179,11 +179,11 @@ void door_deinit(void) {
 }
 
 void door_open(void) {
-    if (s_state != DOOR_OPENING && s_state != DOOR_OPEN) start_anim(true);
+    if (s_state != DOOR_OPENING && s_state != DOOR_OPEN) start_anim(true, DOOR_ANIM_MS);
 }
 
 void door_close(void) {
-    if (s_state != DOOR_CLOSING && s_state != DOOR_CLOSED) start_anim(false);
+    if (s_state != DOOR_CLOSING && s_state != DOOR_CLOSED) start_anim(false, DOOR_CLOSE_MS);
 }
 
 DoorState door_state(void)    { return s_state; }

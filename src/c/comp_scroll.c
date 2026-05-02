@@ -1,7 +1,6 @@
 #include "comp_scroll.h"
 #include "registry.h"
-
-#define SCROLL_ANIM_MS 250
+#include "config.h"
 
 static Layer            *s_layer        = NULL;
 static GRect             s_diamond;
@@ -11,23 +10,32 @@ static int               s_offset       = 0;   /* w→0 during slide */
 static bool              s_transitioning = false;
 static Animation        *s_anim         = NULL;
 static CompScrollDoneCb  s_done_cb      = NULL;
+static int               s_exit_w       = -1;  /* -1 = full width */
+
+static GRect exit_diamond(void) {
+    if (s_exit_w < 0) return s_diamond;
+    int cx = s_diamond.origin.x + s_diamond.size.w / 2;
+    return GRect(cx - s_exit_w / 2, s_diamond.origin.y, s_exit_w, s_diamond.size.h);
+}
 
 static void layer_draw(Layer *layer, GContext *ctx) {
     (void)layer;
-    if (!s_transitioning) {
-        registry_draw_index(s_out_idx, ctx, s_diamond);
+    GRect d = exit_diamond();
+
+    if (!s_transitioning || s_exit_w >= 0) {
+        registry_draw_index(s_out_idx, ctx, d);
         return;
     }
 
     GRect out_bounds = GRect(
-        s_diamond.origin.x + s_offset - s_diamond.size.w,
-        s_diamond.origin.y,
-        s_diamond.size.w, s_diamond.size.h);
+        d.origin.x + s_offset - d.size.w,
+        d.origin.y,
+        d.size.w, d.size.h);
 
     GRect in_bounds = GRect(
-        s_diamond.origin.x + s_offset,
-        s_diamond.origin.y,
-        s_diamond.size.w, s_diamond.size.h);
+        d.origin.x + s_offset,
+        d.origin.y,
+        d.size.w, d.size.h);
 
     registry_draw_index(s_out_idx, ctx, out_bounds);
     registry_draw_index(s_in_idx,  ctx, in_bounds);
@@ -35,7 +43,6 @@ static void layer_draw(Layer *layer, GContext *ctx) {
 
 static void anim_update(Animation *a, AnimationProgress p) {
     (void)a;
-    /* p: 0 → ANIMATION_NORMALIZED_MAX; invert so s_offset runs w → 0 */
     s_offset = s_diamond.size.w -
                (int)((int64_t)p * s_diamond.size.w / ANIMATION_NORMALIZED_MAX);
     if (s_layer) layer_mark_dirty(s_layer);
@@ -62,6 +69,7 @@ void comp_scroll_init(Layer *parent, GRect diamond_bounds) {
     s_in_idx        = s_out_idx;
     s_offset        = 0;
     s_transitioning = false;
+    s_exit_w        = -1;
 
     GRect parent_bounds = layer_get_bounds(parent);
     s_layer = layer_create(parent_bounds);
@@ -74,6 +82,7 @@ void comp_scroll_deinit(void) {
     s_done_cb       = NULL;
     s_transitioning = false;
     s_offset        = 0;
+    s_exit_w        = -1;
     if (s_layer) { layer_destroy(s_layer); s_layer = NULL; }
 }
 
@@ -96,5 +105,14 @@ void comp_scroll_trigger(int from_idx, int to_idx, CompScrollDoneCb cb) {
 }
 
 void comp_scroll_mark_dirty(void) {
+    if (s_layer) layer_mark_dirty(s_layer);
+}
+
+void comp_scroll_set_visible(bool visible) {
+    if (s_layer) layer_set_hidden(s_layer, !visible);
+}
+
+void comp_scroll_set_exit_width(int w) {
+    s_exit_w = w;
     if (s_layer) layer_mark_dirty(s_layer);
 }

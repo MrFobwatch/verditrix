@@ -44,8 +44,8 @@ static void d_draw(Complication *base, GContext *ctx, GRect bounds) {
     int cy = bounds.origin.y + bounds.size.h / 2;
     int u  = (bounds.size.w < bounds.size.h ? bounds.size.w : bounds.size.h) / 10;
 
-    GFont big   = fonts_get_system_font(FONT_KEY_LECO_28_LIGHT_NUMBERS);
-    GFont small = fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD);
+    GFont big   = fonts_get_system_font(FONT_KEY_BITHAM_42_BOLD);
+    GFont small = fonts_get_system_font(FONT_KEY_BITHAM_30_BLACK);
 
     graphics_context_set_text_color(ctx, OMNI_COMP_TEXT);
 
@@ -58,7 +58,7 @@ static void d_draw(Complication *base, GContext *ctx, GRect bounds) {
 
     graphics_draw_text(ctx, self->day_buf, small, day_rect,
                        GTextOverflowModeFill, GTextAlignmentCenter, NULL);
-    graphics_draw_text(ctx, self->date_buf, big, date_rect,
+    graphics_draw_text(ctx, self->date_buf, small, date_rect,
                        GTextOverflowModeFill, GTextAlignmentCenter, NULL);
 }
 

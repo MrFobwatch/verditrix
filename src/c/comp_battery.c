@@ -16,7 +16,7 @@ static void b_refresh(BatteryComplication *self) {
     BatteryChargeState s = battery_state_service_peek();
     self->percent  = s.charge_percent;
     self->charging = s.is_charging;
-    snprintf(self->buf, sizeof(self->buf), "%d%%", self->percent);
+    snprintf(self->buf, sizeof(self->buf), "%d %%", self->percent);
 }
 
 static void b_init(Complication *base) {
@@ -44,7 +44,7 @@ static void b_draw(Complication *base, GContext *ctx, GRect bounds) {
     else if (self->percent > 20) bar_color = GColorYellow;
     else                          bar_color = GColorRed;
 
-    GFont font = fonts_get_system_font(FONT_KEY_LECO_36_BOLD_NUMBERS);
+    GFont font = fonts_get_system_font(FONT_KEY_BITHAM_42_BOLD);
     graphics_context_set_text_color(ctx, OMNI_COMP_TEXT);
     GRect text_rect = GRect(cx - u * 7 / 2, cy - u * 2, u * 7, u * 3);
     graphics_draw_text(ctx, self->buf, font, text_rect,

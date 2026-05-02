@@ -27,8 +27,8 @@ static void w_draw(Complication *base, GContext *ctx, GRect bounds) {
     char temp_str[8];
     snprintf(temp_str, sizeof(temp_str), "%d\xc2\xb0", self->temp);
 
-    GFont temp_font = fonts_get_system_font(FONT_KEY_LECO_28_LIGHT_NUMBERS);
-    GFont cond_font = fonts_get_system_font(FONT_KEY_ROBOTO_CONDENSED_21);
+    GFont temp_font = fonts_get_system_font(FONT_KEY_LECO_42_NUMBERS);
+    GFont cond_font = fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD);
 
     graphics_context_set_text_color(ctx, OMNI_COMP_TEXT);
 

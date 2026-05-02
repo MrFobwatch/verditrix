@@ -5,15 +5,15 @@
  *
  *   Root window layer
  *    ├── s_bg_layer     solid OMNI_BG fill
- *    ├── [frame]        chrome decoration — currently disabled
+ *    ├── door layer     X-half doors + time text (owned by door.c)
  *    ├── comp_scroll    animated complication layer (owned by comp_scroll.c)
  *    ├── comp_mask      static inverse diamond mask (owned by comp_mask.c)
- *    └── door layer     X-half doors + time text (topmost, owned by door.c)
+ *    └── frame          chrome decoration — topmost, always visible (owned by frame.c)
  *
  * Sequence state machine (wraps door.c's OPENING/CLOSING animation):
  *
  *   IDLE ─tap→ BLINK_OUT ─done→ [door opens] ─done→ HOLD ─timer→
- *   WARN ─done→ [door closes] ─done→ BLINK_IN ─done→ IDLE
+ *   WARN_WHITE ─done→ WARN ─done→ [door closes] ─done→ IDLE
  */
 
 #include <pebble.h>
@@ -41,13 +41,15 @@ typedef enum {
     SEQ_IDLE,
     SEQ_BLINK_OUT,
     SEQ_HOLD,
+    SEQ_WARN_WHITE,
     SEQ_WARN,
-    SEQ_BLINK_IN,
 } SeqState;
 
 static SeqState  s_seq       = SEQ_IDLE;
 static int       s_blink_frame = 0;
 static AppTimer *s_seq_timer  = NULL;
+
+static bool s_rotate_on_open = true;  /* initial CW rotation when door opens */
 
 static void cancel_seq_timer(void) {
     if (s_seq_timer) {
@@ -86,7 +88,16 @@ static void seq_callback(void *context) {
             break;
 
         case SEQ_HOLD:
-            /* Timer expired — start WARN */
+            /* Timer expired — flash white for 1s then enter WARN */
+            s_seq = SEQ_WARN_WHITE;
+            s_blink_frame = 0;
+            theme_set_accent(GColorWhite);
+            mark_all_dirty();
+            schedule_seq(1000);
+            break;
+
+        case SEQ_WARN_WHITE:
+            /* White phase done — start red blinking */
             s_seq = SEQ_WARN;
             s_blink_frame = 0;
             theme_set_accent(GColorRed);
@@ -95,29 +106,15 @@ static void seq_callback(void *context) {
             break;
 
         case SEQ_WARN:
-            /* Alternate red ↔ black; after NUM_WARN_FRAMES, close doors */
+            /* Alternate red ↔ black; interval grows each frame so blink trails off */
             theme_set_accent((s_blink_frame % 2 == 0) ? GColorRed : GColorBlack);
             mark_all_dirty();
             if (s_blink_frame >= NUM_WARN_FRAMES) {
-                theme_set_accent(GColorMalachite);
+                comp_mask_set_visible(false);
                 door_close();
                 return;
             }
-            schedule_seq(BLINK_INTERVAL_MS);
-            break;
-
-        case SEQ_BLINK_IN:
-            /* Alternate green ↔ black; after NUM_BLINK_FRAMES, enter idle */
-            theme_set_accent((s_blink_frame % 2 == 0) ? GColorMalachite : GColorBlack);
-            mark_all_dirty();
-            if (s_blink_frame >= NUM_BLINK_FRAMES) {
-                theme_set_accent(GColorMalachite);
-                s_seq = SEQ_IDLE;
-                frame_start_rotation();
-                mark_all_dirty();
-                return;
-            }
-            schedule_seq(BLINK_INTERVAL_MS);
+            schedule_seq(BLINK_INTERVAL_MS + s_blink_frame * WARN_STEP_MS);
             break;
 
         default:
@@ -135,6 +132,7 @@ static void bg_draw(Layer *l, GContext *ctx) {
 
 static void on_scroll_done(int new_idx) {
     registry_set_current(new_idx);
+    frame_rotate_cw();
 }
 
 /* ============================================================
@@ -143,16 +141,24 @@ static void on_scroll_done(int new_idx) {
 static void on_door_state_change(DoorState state, void *ctx) {
     switch (state) {
         case DOOR_OPEN:
+            comp_scroll_set_exit_width(-1);
+            comp_mask_set_split(0);
+            comp_scroll_set_visible(true);
+            comp_mask_set_visible(true);
+            if (s_rotate_on_open) frame_rotate_cw();
             cancel_seq_timer();
             s_seq = SEQ_HOLD;
             s_blink_frame = 0;
             schedule_seq(HOLD_DURATION_MS);
             break;
         case DOOR_CLOSED:
+            comp_scroll_set_exit_width(-1);
+            comp_scroll_set_visible(false);
+            comp_mask_set_visible(false);
             cancel_seq_timer();
-            s_seq = SEQ_BLINK_IN;
-            s_blink_frame = 0;
-            schedule_seq(BLINK_INTERVAL_MS);
+            s_seq = SEQ_IDLE;
+            theme_set_accent(GColorMalachite);
+            frame_rotate_ccw();
             break;
         default:
             break;
@@ -164,6 +170,10 @@ static void on_door_state_change(DoorState state, void *ctx) {
  * Door frame callback — keeps complication in sync with animation.
  * ============================================================ */
 static void on_door_frame(int progress, void *ctx) {
+    if (door_state() == DOOR_CLOSING) {
+        int cur_w = s_diamond_bounds.size.w * progress / 100;
+        comp_scroll_set_exit_width(cur_w);
+    }
     comp_scroll_mark_dirty();
 }
 
@@ -174,7 +184,7 @@ static void on_tap(AccelAxisType axis, int32_t direction) {
     DoorState st = door_state();
 
     if (st == DOOR_CLOSED || st == DOOR_CLOSING) {
-        if (s_seq == SEQ_BLINK_IN) return;  /* ignore during close blink */
+        if (door_state() == DOOR_CLOSING) return;  /* ignore during close animation */
         cancel_seq_timer();
         s_seq = SEQ_BLINK_OUT;
         s_blink_frame = 0;
@@ -185,13 +195,13 @@ static void on_tap(AccelAxisType axis, int32_t direction) {
         int from = registry_current_idx();
         int to   = registry_peek_next();
         comp_scroll_trigger(from, to, on_scroll_done);
-        if (s_seq == SEQ_HOLD || s_seq == SEQ_WARN) {
+        if (s_seq == SEQ_HOLD || s_seq == SEQ_WARN || s_seq == SEQ_WARN_WHITE) {
             cancel_seq_timer();
             s_seq = SEQ_HOLD;
             s_blink_frame = 0;
             theme_set_accent(GColorMalachite);
             mark_all_dirty();
-            schedule_seq(HOLD_DURATION_MS);
+            schedule_seq(TAP_HOLD_DURATION_MS);
         }
     }
 }
@@ -259,12 +269,15 @@ static void window_load(Window *window) {
     layer_set_update_proc(s_bg_layer, bg_draw);
     layer_add_child(root, s_bg_layer);
 
-    frame_init(root);
+    door_init(root, s_diamond_bounds);
 
     comp_scroll_init(root, s_diamond_bounds);
-    comp_mask_init(root, s_diamond_bounds);
+    comp_mask_init(root, bounds);
+    comp_scroll_set_visible(false);
+    comp_mask_set_visible(false);
 
-    door_init(root, s_diamond_bounds);
+    frame_init(root);  /* topmost — always visible above mask and door */
+
     door_set_state_cb(on_door_state_change, NULL);
     door_set_frame_cb(on_door_frame, NULL);
 
@@ -273,9 +286,9 @@ static void window_load(Window *window) {
 
 static void window_unload(Window *window) {
     cancel_seq_timer();
-    door_deinit();
     comp_mask_deinit();
     comp_scroll_deinit();
+    door_deinit();
     frame_deinit();
     if (s_bg_layer)   { layer_destroy(s_bg_layer);   s_bg_layer   = NULL; }
     registry_deinit();

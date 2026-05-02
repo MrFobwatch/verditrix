@@ -9,6 +9,9 @@ static Complication **s_comps[] = {
     &comp_weather,
     &comp_date,
     &comp_battery,
+    &comp_weather,
+
+    
 };
 #define N_COMPS (sizeof(s_comps) / sizeof(s_comps[0]))
 

@@ -27,3 +27,7 @@ void comp_scroll_deinit(void);
 void comp_scroll_trigger(int from_idx, int to_idx, CompScrollDoneCb cb);
 
 void comp_scroll_mark_dirty(void);
+void comp_scroll_set_visible(bool visible);
+
+/* Clamp the horizontal draw width toward center (pixels). -1 = full width. */
+void comp_scroll_set_exit_width(int w);
