@@ -46,4 +46,4 @@ pebble install --cloudpebble
 
 ## License
 
-MIT © 2026 Kevin
+MIT © 2026 MrFobwatch
