@@ -1,5 +1,5 @@
 {
-  "name": "omnitrix",
+  "name": "verditrix",
   "author": "Your Name",
   "version": "0.1.0",
   "keywords": [
@@ -10,7 +10,7 @@
     "pebble-effect-layer": "^1.4.0"
   },
   "pebble": {
-    "displayName": "Omnitrix",
+    "displayName": "Verditrix",
     "uuid": "3935a483-ae68-4012-b25d-f4410529e44d",
     "sdkVersion": "3",
     "enableMultiJS": true,
